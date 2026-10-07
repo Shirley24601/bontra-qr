@@ -118,6 +118,10 @@
       color: var(--brand);
     }
 
+    .mobile-heading-line {
+      display: inline;
+    }
+
     .sub {
       margin: 24px 0 0;
       max-width: 550px;
@@ -274,11 +278,16 @@
       }
 
       h1 {
-        max-width: 10.5ch;
+        max-width: none;
         margin-left: auto;
         margin-right: auto;
-        font-size: clamp(34px, 9.3vw, 44px);
+        font-size: clamp(37px, 9.8vw, 43px);
         line-height: .96;
+      }
+
+      .mobile-heading-line {
+        display: block;
+        white-space: nowrap;
       }
 
       .sub {
@@ -322,7 +331,7 @@
         padding-top: 8px;
       }
       h1 {
-        font-size: clamp(30px, 8.8vw, 38px);
+        font-size: clamp(34px, 9.2vw, 38px);
       }
       .sub {
         margin-top: 12px;
@@ -353,7 +362,7 @@
 
     <main>
       <section class="copy">
-        <h1 class="fade d2"><span class="hero-accent">Hey!</span> Thanks for scanning my QR code.</h1>
+        <h1 class="fade d2"><span class="mobile-heading-line"><span class="hero-accent">Hey!</span> Thanks for</span> <span class="mobile-heading-line">scanning my QR code!</span></h1>
 
         <p class="sub fade d3">
           <strong>I’d love it if you checked out what Bontra could do for you... and maybe joined (only takes 1 min).</strong>
