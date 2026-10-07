@@ -43,6 +43,9 @@
 
     body {
       min-height: 100dvh;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
     .shell {
@@ -61,6 +64,31 @@
       justify-content: space-between;
       border-bottom: 1px solid var(--line);
       flex: 0 0 auto;
+    }
+
+    .story-progress {
+      width: 100%;
+      height: 3px;
+      margin-top: -1px;
+      overflow: hidden;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: rgba(195, 1, 47, .14);
+    }
+
+    .story-progress-fill {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--brand);
+      transform: scaleX(0);
+      transform-origin: left center;
+      will-change: transform;
+    }
+
+    body.is-paused .story-progress-fill {
+      opacity: .58;
     }
 
     .logo {
@@ -360,20 +388,25 @@
       <a class="header-link" href="https://bontra.ai">Visit bontra.ai</a>
     </header>
 
+    <div class="story-progress" id="story-progress" role="progressbar" aria-label="Automatic redirect progress" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-valuetext="10 seconds remaining">
+      <span class="story-progress-fill" id="story-progress-fill"></span>
+    </div>
+
     <main>
       <section class="copy">
         <h1 class="fade d2"><span class="mobile-heading-line"><span class="hero-accent">Hey!</span> Thanks for</span> <span class="mobile-heading-line">scanning my QR code!</span></h1>
 
         <p class="sub fade d3">
-          I’d love it if you checked out what Bontra could do for you...
-          <br>and maybe join (only takes 1 min).
-          <br><br>
-          We'd love to have you on board!
+          I’m building something new for people in insurance.
+          <br>If you’ve got a minute, I’d love you to give it a go :)
         </p>
 
         <div class="actions fade d4">
-          <a class="cta" href="https://bontra.ai" id="cta">Take me to Bontra →</a>
-          <div class="redirect">Taking you there automatically in <span id="count">10</span>s</div>
+          <a class="cta" href="https://bontra.ai/scan" id="cta">Take me to Bontra →</a>
+          <div class="redirect">
+            <span id="countdown-copy">Taking you there in <span id="count">10</span>s · Hold to pause</span>
+            <span id="paused-copy" hidden>Paused · Release to continue</span>
+          </div>
         </div>
       </section>
 
@@ -396,27 +429,86 @@
 
   <script>
     (() => {
-      const target = "https://bontra.ai";
-      let remaining = 10;
+      const target = "https://bontra.ai/scan";
+      const duration = 10000;
+      let elapsed = 0;
+      let previousTime = performance.now();
       let redirected = false;
+      let heldPointer = null;
+      let holdPaused = false;
+      let visibilityPaused = document.hidden;
+      let frame;
       const count = document.getElementById("count");
-      const cta = document.getElementById("cta");
+      const countdownCopy = document.getElementById("countdown-copy");
+      const pausedCopy = document.getElementById("paused-copy");
+      const progress = document.getElementById("story-progress");
+      const progressFill = document.getElementById("story-progress-fill");
 
-      cta.addEventListener("click", () => redirected = true);
+      const setHoldPaused = (paused) => {
+        holdPaused = paused;
+        document.body.classList.toggle("is-paused", paused);
+        countdownCopy.hidden = paused;
+        pausedCopy.hidden = !paused;
+      };
 
-      const timer = setInterval(() => {
-        remaining -= 1;
-        if (remaining > 0) {
+      const startHold = (event) => {
+        if (redirected || heldPointer !== null) return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        heldPointer = event.pointerId;
+        setHoldPaused(true);
+      };
+
+      const endHold = (event) => {
+        if (event.pointerId !== heldPointer) return;
+        heldPointer = null;
+        setHoldPaused(false);
+        previousTime = performance.now();
+      };
+
+      const tick = (now) => {
+        if (!holdPaused && !visibilityPaused) {
+          elapsed += now - previousTime;
+        }
+        previousTime = now;
+
+        const completion = Math.min(elapsed / duration, 1);
+        const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+        progressFill.style.transform = `scaleX(${completion})`;
+
+        if (count.textContent !== String(remaining)) {
           count.textContent = remaining;
+          progress.setAttribute("aria-valuenow", String(Math.min(10, Math.floor(elapsed / 1000))));
+          progress.setAttribute("aria-valuetext", `${remaining} seconds remaining`);
+        }
+
+        if (elapsed < duration) {
+          frame = requestAnimationFrame(tick);
           return;
         }
 
-        clearInterval(timer);
         if (!redirected) {
           redirected = true;
           window.location.assign(target);
         }
-      }, 1000);
+      };
+
+      document.addEventListener("pointerdown", startHold, { passive: true });
+      document.addEventListener("pointerup", endHold, { passive: true });
+      document.addEventListener("pointercancel", endHold, { passive: true });
+
+      document.addEventListener("visibilitychange", () => {
+        visibilityPaused = document.hidden;
+        previousTime = performance.now();
+      });
+
+      document.querySelectorAll('a[href^="https://bontra.ai"]').forEach((link) => {
+        link.addEventListener("click", () => {
+          redirected = true;
+          cancelAnimationFrame(frame);
+        });
+      });
+
+      frame = requestAnimationFrame(tick);
     })();
   </script>
 </body>
